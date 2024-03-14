@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import argparse
+import time
 from normalization import Normalization, RewardScaling
 from replay_buffer import ReplayBuffer
 from mappo_mpe import MAPPO_MPE
@@ -114,7 +115,18 @@ class Runner_MAPPO_MPE:
 
         return episode_reward, episode_step + 1
 
-
+    def run_display(self, ): # visualize 
+        self.agent_n.load_model(self.env_name, self.number, self.seed, 500)
+        print("successfully load the model")
+        while True:
+            obs_n = self.env.reset()
+            for _ in range(self.args.episode_limit):
+                a_n, _ = self.agent_n.choose_action(obs_n, evaluate=True)
+                obs_n, _, done_n, _ = self.env.step(a_n)
+                if all(done_n):
+                    break
+                self.env.render()
+                time.sleep(0.05)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for MAPPO in MPE environment")
@@ -147,4 +159,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     runner = Runner_MAPPO_MPE(args, env_name="simple_spread", number=1, seed=0)
-    runner.run()
+    # runner.run()
+    runner.run_display()
