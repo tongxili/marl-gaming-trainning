@@ -82,6 +82,7 @@ class Runner_MAPPO_MPE:
     def run_episode_mpe(self, evaluate=False):
         episode_reward = 0
         obs_n = self.env.reset()
+        # print("obs shape", obs_n.shape, "agent num", self.args.N)
         if self.args.use_reward_scaling:
             self.reward_scaling.reset()
         if self.args.use_rnn:  # If use RNN, before the beginning of each episode，reset the rnn_hidden of the Q network.
@@ -116,7 +117,7 @@ class Runner_MAPPO_MPE:
         return episode_reward, episode_step + 1
 
     def run_display(self, ): # visualize 
-        self.agent_n.load_model(self.env_name, self.number, self.seed, 500)
+        self.agent_n.load_model(self.env_name, self.number, self.seed, 100)
         print("successfully load the model")
         while True:
             obs_n = self.env.reset()
@@ -158,6 +159,6 @@ if __name__ == '__main__':
     parser.add_argument("--use_value_clip", type=float, default=False, help="Whether to use value clip.")
 
     args = parser.parse_args()
-    runner = Runner_MAPPO_MPE(args, env_name="simple_spread", number=1, seed=0)
+    runner = Runner_MAPPO_MPE(args, env_name="simple_tag", number=1, seed=0)
     # runner.run()
     runner.run_display()
