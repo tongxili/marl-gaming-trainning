@@ -55,6 +55,20 @@ class Landmark(Entity):
      def __init__(self):
         super(Landmark, self).__init__()
 
+# properties of rule-based agent (blue) entities
+class Rule_based_Agent(Entity):
+    def __init__(self):
+        super(Rule_based_Agent, self).__init__()
+        self.movable = True
+        self.silent = False
+        self.blind = False
+        self.collide = True
+        self.accel = 1.0
+        self.max_speed = 1.0
+        self.state = EntityState()
+        self.action = Action()
+        self.rule_based = True
+
 # properties of agent entities
 class Agent(Entity):
     def __init__(self):
@@ -62,7 +76,7 @@ class Agent(Entity):
         # agents are movable by default
         self.movable = True
         # cannot send communication signals
-        self.silent = False
+        self.silent = True
         # cannot observe the world
         self.blind = False
         # physical motor noise amount
@@ -77,6 +91,7 @@ class Agent(Entity):
         self.action = Action()
         # script behavior to execute
         self.action_callback = None
+        self.rule_based = False
 
 # multi-agent world
 class World(object):
@@ -84,6 +99,7 @@ class World(object):
         # list of agents and entities (can change at execution-time!)
         self.agents = []
         self.landmarks = []
+        self.rule_agents = []
         # communication channel dimensionality
         self.dim_c = 0
         # position dimensionality
@@ -97,11 +113,13 @@ class World(object):
         # contact response parameters
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
+        self.discrete_action = True
 
     # return all entities in the world
     @property
     def entities(self):
-        return self.agents + self.landmarks
+        # print(len(self.agents),'agents',len(self.landmarks),'landmarks',len(self.rule_agents),'rule_agents')
+        return self.agents + self.landmarks + self.rule_agents
 
     # return all agents controllable by external policies
     @property
@@ -111,13 +129,20 @@ class World(object):
     # return all agents controlled by world scripts
     @property
     def scripted_agents(self):
-        return [agent for agent in self.agents if agent.action_callback is not None]
+        # return [agent for agent in self.agents if agent.action_callback is not None]
+        return [agent for agent in self.rule_agents]
 
     # update state of the world
     def step(self):
         # set actions for scripted agents 
-        for agent in self.scripted_agents:
-            agent.action = agent.action_callback(agent, self)
+        # for agent in self.scripted_agents: # TODO：对蓝方的动作更新 action_callback
+        #     agent.action = agent.action_callback(agent, self)
+        ### Way 2: directly adding force
+        # p_force_rule = [None] * len(self.scripted_agents)
+        # p_force_rule = self.apply_rule_force(p_force_rule)
+        # self.integrate_state(p_force_rule)
+        # agent.action = self.apply_action_force(p_force)
+
         # gather forces applied to entities
         p_force = [None] * len(self.entities)
         # apply agent physical controls
@@ -129,6 +154,13 @@ class World(object):
         # update agent state
         for agent in self.agents:
             self.update_agent_state(agent)
+    
+    def apply_rule_force(self, p_force):
+        # set applied forces
+        for i,agent in enumerate(self.scripted_agents):
+            if agent.movable:
+                p_force[i] = 0.0               
+        return p_force
 
     # gather agent action forces
     def apply_action_force(self, p_force):
@@ -158,6 +190,9 @@ class World(object):
     def integrate_state(self, p_force):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
+            if entity.rule_based: # set constant speed for rule-based
+                entity.state.p_vel = np.array([-0.06,0.03])
+            
             entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
@@ -191,6 +226,8 @@ class World(object):
         k = self.contact_margin
         penetration = np.logaddexp(0, -(dist - dist_min)/k)*k
         force = self.contact_force * delta_pos / dist * penetration
-        force_a = +force if entity_a.movable else None
-        force_b = -force if entity_b.movable else None
+        # force_a = +force if entity_a.movable else None
+        # force_b = -force if entity_b.movable else None
+        force_a = None
+        force_b = None
         return [force_a, force_b]
