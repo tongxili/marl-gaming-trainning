@@ -124,7 +124,7 @@ class Runner_MAPPO_MPE:
         return episode_reward, episode_step + 1
 
     def run_display(self, ): # visualize 
-        self.agent_n.load_model(self.env_name, self.number, self.seed, 5)
+        self.agent_n.load_model(self.env_name, self.number, self.seed, 20)
         print("successfully load the model")
         while True:
             obs_n = self.env.reset()
@@ -166,6 +166,6 @@ if __name__ == '__main__':
     parser.add_argument("--use_value_clip", type=float, default=False, help="Whether to use value clip.")
 
     args = parser.parse_args()
-    runner = Runner_MAPPO_MPE(args, env_name="3vs0", number=1, seed=0)
+    runner = Runner_MAPPO_MPE(args, env_name="3vs3", number=1, seed=0)
     # runner.run()
     runner.run_display()

@@ -1,6 +1,7 @@
 import numpy as np
 from multiagent.core import World, Agent, Landmark, Rule_based_Agent
 from multiagent.scenario import BaseScenario
+from multiagent.utils import four_dir_generate_random_coordinates
 
 class Scenario(BaseScenario):
     def make_world(self):
@@ -8,11 +9,13 @@ class Scenario(BaseScenario):
         #配置无人机个数，环境维度
         world.dim_c = 2
         
-        num_good_agents = 3
+        num_agents = 3
         num_rule_agents = 3
-        num_agents =  num_good_agents
-        num_landmarks = 13
-        num_food = 3
+        num_landmarks = 2
+        num_food = 1
+        self.num_rule_agents = num_rule_agents
+        self.num_good_agents = num_agents
+        self.num_food = num_food
         #对无人机进行状态设置等等。。。
         world.agents = [Agent() for _ in range(num_agents)]
         for i, agent in enumerate(world.agents):
@@ -62,7 +65,6 @@ class Scenario(BaseScenario):
         world.landmarks += world.food
         # make initial conditions
         self.reset_world(world)
-        self.num_good_agents = num_good_agents
         return world
 
     def reset_world(self, world):
@@ -77,13 +79,19 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.food):
             landmark.color = np.array([0, 1, 0])
         
+        # generate random positions
+        screen_size = [-1, 1]
+        blue_pos, red_pos, food_pos = four_dir_generate_random_coordinates(screen_size=screen_size, num_rule=self.num_rule_agents, dist_rule=0.1,
+                                                                           num_adv=self.num_good_agents, num_food=self.num_food)
+
         for rule_agent in world.rule_agents:
             rule_agent.color = np.array([0, 0, 255])
             
         for i, agent in enumerate(self.good_agents(world)):
-            interval = 2.0 / (len(self.good_agents(world)) + 1)
+            # interval = 2.0 / (len(self.good_agents(world)) + 1)
             #print(interval)，中心距离为0.5
-            agent.state.p_pos = np.array([-0.9, 1 - (i+1)*interval])
+            # agent.state.p_pos = np.array([-0.9, 1 - (i+1)*interval])
+            agent.state.p_pos = red_pos[i]
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
             
@@ -91,8 +99,9 @@ class Scenario(BaseScenario):
             agent.hit = False
         
         for i, rule_agent in enumerate(self.rule_agents(world)):
-            interval = 2.0 / (len(self.rule_agents(world)) + 1)
-            rule_agent.state.p_pos = np.array([0.8, 1 - (i+1)*interval])
+            # interval = 2.0 / (len(self.rule_agents(world)) + 1)
+            # rule_agent.state.p_pos = np.array([0.8, 1 - (i+1)*interval])
+            rule_agent.state.p_pos = blue_pos[i]
             rule_agent.state.p_vel = np.zeros(world.dim_p)
             rule_agent.state.c = np.zeros(world.dim_c)
             
@@ -100,41 +109,39 @@ class Scenario(BaseScenario):
             rule_agent.hit = False
 
         for i, landmark in enumerate(world.landmarks):
-            if not landmark.boundary:
-                if landmark.name == 'landmark 0':
-                    landmark.state.p_pos = np.array([-0.1,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 1':
-                    landmark.state.p_pos = np.array([0.1,-0.7])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 2':
-                    landmark.state.p_pos = np.array([0.1,0.3])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 3':
-                    landmark.state.p_pos = np.array([-0.1,0.1])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 4':
-                    landmark.state.p_pos = np.array([-0.2,0.4])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 5':
-                    landmark.state.p_pos = np.array([0.2,0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 6':
-                    landmark.state.p_pos = np.array([0.3,0.5])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 7':
-                    landmark.state.p_pos = np.array([0.6,0.7])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 8':
-                    landmark.state.p_pos = np.array([0.6,0.1])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 9':
-                    landmark.state.p_pos = np.array([0.7,-0.2])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 10':
-                    landmark.state.p_pos = np.array([0.8,-0.5])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 11':
-                    landmark.state.p_pos = np.array([0.9,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                elif landmark.name == 'landmark 12':
-                    landmark.state.p_pos = np.array([0.9,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
-
-                    #landmark.state.p_pos = np.random.uniform(-0.1, +0.1, world.dim_p)
-
-                landmark.state.p_vel = np.zeros(world.dim_c)
+            if not landmark.boundary: # other landmarks
+                # Random position and 0 velocity for landmarks
+                landmark.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
+                landmark.state.p_vel = np.zeros(world.dim_p) # 速度为0
+                # if landmark.name == 'landmark 0':
+                #     landmark.state.p_pos = np.array([-0.1,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 1':
+                #     landmark.state.p_pos = np.array([0.1,-0.7])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 2':
+                #     landmark.state.p_pos = np.array([0.1,0.3])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 3':
+                #     landmark.state.p_pos = np.array([-0.1,0.1])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 4':
+                #     landmark.state.p_pos = np.array([-0.2,0.4])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 5':
+                #     landmark.state.p_pos = np.array([0.2,0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 6':
+                #     landmark.state.p_pos = np.array([0.3,0.5])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 7':
+                #     landmark.state.p_pos = np.array([0.6,0.7])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 8':
+                #     landmark.state.p_pos = np.array([0.6,0.1])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 9':
+                #     landmark.state.p_pos = np.array([0.7,-0.2])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 10':
+                #     landmark.state.p_pos = np.array([0.8,-0.5])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 11':
+                #     landmark.state.p_pos = np.array([0.9,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
+                # elif landmark.name == 'landmark 12':
+                #     landmark.state.p_pos = np.array([0.9,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
 
         for i, landmark in enumerate(world.food):
-            interval = 2.2 / (len(world.food) + 1)
-            landmark.state.p_pos = np.array([0.89, 1 - (i+1)*interval])
+            landmark.state.p_pos = food_pos[i] # change for 4 quardants
             landmark.state.p_vel = np.zeros(world.dim_p)
         
     def benchmark_data(self, agent, world):
