@@ -9,9 +9,9 @@ class Scenario(BaseScenario):
         #配置无人机个数，环境维度
         world.dim_c = 2
         
-        num_agents = 3
-        num_rule_agents = 3
-        num_landmarks = 2
+        num_agents = 4 # red
+        num_rule_agents = 5 # blue
+        num_landmarks = 0 # TEMP: no obstacles
         num_food = 1
         self.num_rule_agents = num_rule_agents
         self.num_good_agents = num_agents
@@ -24,7 +24,7 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.accel = 0.5
             agent.size = 0.02
-            agent.max_speed = 1
+            agent.max_speed = 0.8
             agent.death = False
             agent.pusai = np.pi
             agent.hit = False
@@ -47,11 +47,13 @@ class Scenario(BaseScenario):
             rule_agent.silent = True
             rule_agent.accel = 0.5
             rule_agent.size = 0.02
-            rule_agent.max_speed = 1
+            rule_agent.max_speed = 0.8 # 实际发现太快了，改小一点
             rule_agent.death = False
             rule_agent.pusai = np.pi
             rule_agent.hit = False
             rule_agent.movable = True
+            rule_agent.action.u = np.zeros(world.dim_p) # initialize action.u
+            rule_agent.action.c = np.zeros(world.dim_c)
 
         #从上到下为food 0 1 2
         world.food = [Landmark() for i in range(num_food)]
@@ -81,7 +83,7 @@ class Scenario(BaseScenario):
         
         # generate random positions
         screen_size = [-1, 1]
-        blue_pos, red_pos, food_pos = four_dir_generate_random_coordinates(screen_size=screen_size, num_rule=self.num_rule_agents, dist_rule=0.1,
+        blue_pos, red_pos, food_pos = four_dir_generate_random_coordinates(screen_size=screen_size, num_rule=self.num_rule_agents, dist_rule=0.06,
                                                                            num_adv=self.num_good_agents, num_food=self.num_food)
 
         for rule_agent in world.rule_agents:
@@ -101,6 +103,7 @@ class Scenario(BaseScenario):
         for i, rule_agent in enumerate(self.rule_agents(world)):
             # interval = 2.0 / (len(self.rule_agents(world)) + 1)
             # rule_agent.state.p_pos = np.array([0.8, 1 - (i+1)*interval])
+            rule_agent.movable = True
             rule_agent.state.p_pos = blue_pos[i]
             rule_agent.state.p_vel = np.zeros(world.dim_p)
             rule_agent.state.c = np.zeros(world.dim_c)
@@ -168,23 +171,24 @@ class Scenario(BaseScenario):
     def rule_agents(self, world):
         return [agent for agent in world.rule_agents]
 
-    def reward(self, agent, world):
+    def reward(self, agent, world): # reward for red object
         main_reward = self.agent_reward(agent, world)
         return main_reward
 
     def agent_reward(self, agent, world):
-
-        # if agent.death:
-        #     return 0
+        # TODO: modify agent reward for red agents, adding capture of blue
+        if agent.death:
+            return 0
         
         rew = 0
 
         # else:
         for target in world.food:
-            #最大距离缩短
+            # 距离越远，reward越小
             rew -= 8*np.sqrt(np.sum(np.square(agent.state.p_pos - target.state.p_pos)))
     
         for obstacle in world.landmarks:
+            # 和landmarks非常近时，奖励相应增加或减少
             if np.sqrt(np.sum(np.square(obstacle.state.p_pos - agent.state.p_pos)))<0.1:
                 if 'food' in obstacle.name:
                     rew+=2
@@ -201,10 +205,15 @@ class Scenario(BaseScenario):
                 
                 if self.is_collision(agent, landmark):
                     if agent.death:continue
-                    landmark.color = np.array([1, 0, 0])
-
+                    # landmark.color = np.array([1, 0, 0])
                     agent.death = True
-
+                    break
+        
+        for rule_agent in self.rule_agents(world):
+            if self.is_collision(agent, rule_agent):
+                rew -= 5
+                agent.death = True
+                rule_agent.death = True
         #这一段训练后期再加
         #for i, landmark in enumerate(world.food):
         #    if(landmark.color == ([1, 0, 0])):

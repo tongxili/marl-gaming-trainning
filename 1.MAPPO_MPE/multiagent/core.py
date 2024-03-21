@@ -137,11 +137,13 @@ class World(object):
         # set actions for scripted agents 
         # for agent in self.scripted_agents: # TODO：对蓝方的动作更新 action_callback
         #     agent.action = agent.action_callback(agent, self)
-        ### Way 2: directly adding force
-        # p_force_rule = [None] * len(self.scripted_agents)
-        # p_force_rule = self.apply_rule_force(p_force_rule)
-        # self.integrate_state(p_force_rule)
-        # agent.action = self.apply_action_force(p_force)
+        
+        ## Way 2: directly adding force to rule-based agents
+        if self.scripted_agents[0].movable: # leader可动时才计算力
+            p_force_rule = [None] * len(self.scripted_agents)
+            p_force_rule = self.apply_rule_force(p_force_rule)
+            self.integrate_state(self.scripted_agents, p_force_rule)
+            # agent.action = self.apply_action_force(p_force)
 
         # gather forces applied to entities
         p_force = [None] * len(self.entities)
@@ -150,16 +152,67 @@ class World(object):
         # apply environment forces
         p_force = self.apply_environment_force(p_force)
         # integrate physical state
-        self.integrate_state(p_force)
+        self.integrate_state(self.policy_agents, p_force)
         # update agent state
         for agent in self.agents:
             self.update_agent_state(agent)
     
     def apply_rule_force(self, p_force):
-        # set applied forces
-        for i,agent in enumerate(self.scripted_agents):
-            if agent.movable:
-                p_force[i] = 0.0               
+        # check if any agent reaches landmark
+        for agent in self.policy_agents:
+            for lmk in self.landmarks:
+                if 'landmark' in lmk.name:
+                    continue
+                if 'food' in lmk.name:
+                    delta_pos_blue_food = lmk.state.p_pos - agent.state.p_pos
+                    distance_blue_food = np.sqrt(np.sum(np.square(delta_pos_blue_food)))
+                    if(distance_blue_food < agent.size + lmk.size):
+                        p_force = [np.zeros(agent.action.u.shape)] * len(self.scripted_agents)
+                        # self.scripted_agents[0].movable = False
+                        lmk.color = np.array([0, 0, 1])
+                        return p_force
+        
+        # set applied forces on rule-based agents, currently same as leader
+        leader_agent = self.scripted_agents[0]
+        p_force_leader = np.zeros(leader_agent.action.u.shape)
+        # print("action shape: ", leader_agent.action.u.shape)
+        scale_blue_red = 0.5
+        scale_blue_food = 3
+        border_force = 0.8
+        
+        # 判断是否靠近边界[-1, 1]
+        if(leader_agent.state.p_pos[0] < -0.9):
+            p_force_leader[0] += border_force
+        elif(leader_agent.state.p_pos[0] > 0.9):
+            p_force_leader[0] -= border_force
+        if(leader_agent.state.p_pos[1] < -0.9):
+            p_force_leader[1] += border_force
+        elif(leader_agent.state.p_pos[1] > 0.9):
+            p_force_leader[1] -= border_force
+        
+        for agent in self.policy_agents:
+            # repulsion from red agents
+            delta_pos_blue_red = agent.state.p_pos - leader_agent.state.p_pos
+            distance_blue_red = np.sqrt(np.sum(np.square(delta_pos_blue_red)))
+            d_t_blue_red = delta_pos_blue_red / distance_blue_red # direction vector from leader to blue
+            p_force_leader[0] -= d_t_blue_red[0] * np.exp(-distance_blue_red) * scale_blue_red
+            p_force_leader[1] -= d_t_blue_red[1] * np.exp(-distance_blue_red) * scale_blue_red
+            # print(distance_blue_red, d_t_blue_red, p_force_leader)
+
+        for lmk in self.landmarks:
+            # repulsion(or attraction) from landmarks
+            delta_pos_blue_landmark = lmk.state.p_pos - leader_agent.state.p_pos
+            distance_blue_landmark = np.sqrt(np.sum(np.square(delta_pos_blue_landmark)))
+            d_t_blue_lmk = delta_pos_blue_landmark / distance_blue_landmark
+            
+            if 'food' in lmk.name:
+                p_force_leader[0] += d_t_blue_lmk[0] * np.exp(-distance_blue_landmark) * scale_blue_food
+                p_force_leader[1] += d_t_blue_lmk[1] * np.exp(-distance_blue_landmark) * scale_blue_food
+            elif 'landmark' in lmk.name:
+                p_force_leader[0] -= d_t_blue_lmk[0] * np.exp(-distance_blue_landmark) * scale_blue_red
+                p_force_leader[1] -= d_t_blue_lmk[1] * np.exp(-distance_blue_landmark) * scale_blue_red
+            
+        p_force = [p_force_leader] * len(self.scripted_agents)       
         return p_force
 
     # gather agent action forces
@@ -167,6 +220,7 @@ class World(object):
         # set applied forces
         for i,agent in enumerate(self.agents):
             if agent.movable:
+                # print("agent.action.u.shape: ", agent.action.u.shape) # (2,)
                 noise = np.random.randn(*agent.action.u.shape) * agent.u_noise if agent.u_noise else 0.0
                 p_force[i] = agent.action.u + noise                
         return p_force
@@ -187,12 +241,11 @@ class World(object):
         return p_force
 
     # integrate physical state
-    def integrate_state(self, p_force):
-        for i,entity in enumerate(self.entities):
+    def integrate_state(self, agents, p_force):
+        for i,entity in enumerate(agents):
             if not entity.movable: continue
-            if entity.rule_based: # set constant speed for rule-based
-                entity.state.p_vel = np.array([-0.06,0.03])
-            
+            # if entity.rule_based: # set constant speed for rule-based
+            #     entity.state.p_vel = np.array([-0.06,0.03])
             entity.state.p_vel = entity.state.p_vel * (1 - self.damping)
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt

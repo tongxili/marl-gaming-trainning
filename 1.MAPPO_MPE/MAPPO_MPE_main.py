@@ -164,8 +164,11 @@ if __name__ == '__main__':
     parser.add_argument("--use_rnn", type=bool, default=False, help="Whether to use RNN")
     parser.add_argument("--add_agent_id", type=float, default=False, help="Whether to add agent_id. Here, we do not use it.")
     parser.add_argument("--use_value_clip", type=float, default=False, help="Whether to use value clip.")
+    parser.add_argument("--display", type=bool, default=False, help="Whether to display or not.")
 
     args = parser.parse_args()
-    runner = Runner_MAPPO_MPE(args, env_name="3vs3", number=1, seed=0)
-    # runner.run()
-    runner.run_display()
+    runner = Runner_MAPPO_MPE(args, env_name="red_vs_blue", number=1, seed=0)
+    if not args.display:
+        runner.run()
+    else:
+        runner.run_display()

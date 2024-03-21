@@ -120,8 +120,9 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
     blue_pos = [x, y]
     blue_swarm_pos = []
     blue_swarm_pos.append(blue_pos)
-    for i in range(num_rule):
-        angle = 2 * np.pi * i / num_rule * i
+    # print("num_blue:", num_rule)
+    for i in range(num_rule-1):
+        angle = 2 * np.pi * i / (num_rule-1)
         x_blue = x + dist_rule * np.cos(angle)
         y_blue = y + dist_rule * np.sin(angle)
         blue_swarm_pos.append([x_blue, y_blue])
