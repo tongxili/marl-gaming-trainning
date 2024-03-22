@@ -24,7 +24,7 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.accel = 0.5
             agent.size = 0.02
-            agent.max_speed = 0.8
+            agent.max_speed = 0.5
             agent.death = False
             agent.pusai = np.pi
             agent.hit = False
@@ -47,7 +47,7 @@ class Scenario(BaseScenario):
             rule_agent.silent = True
             rule_agent.accel = 0.5
             rule_agent.size = 0.02
-            rule_agent.max_speed = 0.8 # 实际发现太快了，改小一点
+            rule_agent.max_speed = 0.5 # 实际发现太快了，改小一点
             rule_agent.death = False
             rule_agent.pusai = np.pi
             rule_agent.hit = False
@@ -176,44 +176,64 @@ class Scenario(BaseScenario):
         return main_reward
 
     def agent_reward(self, agent, world):
-        # TODO: modify agent reward for red agents, adding capture of blue
-        if agent.death:
-            return 0
+        # ADD: agent reward for red agents, adding capture of blue
+        # if agent.death:
+        #     return 0
         
-        rew = 0
-
-        # else:
-        for target in world.food:
-            # 距离越远，reward越小
-            rew -= 8*np.sqrt(np.sum(np.square(agent.state.p_pos - target.state.p_pos)))
-    
+        if agent.state.p_pos[0] > 1 or agent.state.p_pos[0] < -1 or agent.state.p_pos[1] > 1 or agent.state.p_pos[1] < -1:
+            rew = -100 # 越界扣分
+        else:
+            rew = 50 # 活着就有奖励
+        
+        # for target in world.food:
+        #     # 距离越远，reward越小
+        #     rew -= 10 * np.sqrt(np.sum(np.square(agent.state.p_pos - target.state.p_pos)))
+        
         for obstacle in world.landmarks:
             # 和landmarks非常近时，奖励相应增加或减少
             if np.sqrt(np.sum(np.square(obstacle.state.p_pos - agent.state.p_pos)))<0.1:
                 if 'food' in obstacle.name:
-                    rew+=2
+                    rew -= 5 # 不能太近
                 elif 'landmark' in obstacle.name:
-                    rew-=0.5
+                    rew -= 5
 
             if self.is_collision(obstacle,agent):
-                if 'food' in obstacle.name:
-                    rew+=20
-                elif 'landmark' in obstacle.name:
+                if 'landmark' in obstacle.name:
                     rew-=30
-
-        for _, landmark in enumerate(world.food):
-                
-                if self.is_collision(agent, landmark):
-                    if agent.death:continue
-                    # landmark.color = np.array([1, 0, 0])
-                    agent.death = True
-                    break
+        
+        for other_agent in world.agents:
+            if agent == other_agent: continue
+            if np.sqrt(np.sum(np.square(other_agent.state.p_pos - agent.state.p_pos)))<0.1:
+                rew -= 10 # 红方相互之间不能太近
+            if self.is_collision(agent, other_agent):
+                rew -= 20 # 红方不能相撞
         
         for rule_agent in self.rule_agents(world):
+            # 红方和蓝方，距离越近，reward越大
+            dist_red = np.sqrt(np.sum(np.square(agent.state.p_pos - rule_agent.state.p_pos)))
+            rew += 10 * np.exp(-dist_red)
+
             if self.is_collision(agent, rule_agent):
-                rew -= 5
+                rew += 20
                 agent.death = True
                 rule_agent.death = True
+                rule_agent.color = np.array([0, 0, 0])
+                rule_agent.movable = False
+            
+            # 蓝方和目标点
+            for target in world.food: 
+                # 蓝方距离目标点越近，reward扣越多
+                dist_food = np.sqrt(np.sum(np.square(agent.state.p_pos - rule_agent.state.p_pos)))
+                rew -= 20 * np.exp(-dist_food)
+                
+                # 蓝方到达目标点，扣分
+                if self.is_collision(rule_agent, target):
+                    rew -= 100
+                    rule_agent.death = True
+                    rule_agent.movable = False
+                    self.rule_agents(world)[0].death = True
+                    self.rule_agents(world)[0].movable = False
+        
         #这一段训练后期再加
         #for i, landmark in enumerate(world.food):
         #    if(landmark.color == ([1, 0, 0])):
@@ -244,6 +264,7 @@ class Scenario(BaseScenario):
             if not entity.boundary:
                 entity_pos.append(entity.state.p_pos - agent.state.p_pos)
         comm = []
+        rule_pos = []
         other_pos = []
         other_vel = []
         for other in world.agents:
@@ -251,7 +272,12 @@ class Scenario(BaseScenario):
             comm.append(other.state.c)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
             other_vel.append(other.state.p_vel)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + other_vel)
+        
+        for rule_agent in world.rule_agents:
+            rule_pos.append(rule_agent.state.p_pos - agent.state.p_pos)
+            # 暂时不把rule_agent的速度加进来
+        
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + rule_pos + entity_pos + other_pos + other_vel)
 
     def finish(self, world):
         agents = self.good_agents(world)

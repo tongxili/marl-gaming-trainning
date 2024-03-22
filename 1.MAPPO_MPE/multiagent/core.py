@@ -64,7 +64,7 @@ class Rule_based_Agent(Entity):
         self.blind = False
         self.collide = True
         self.accel = 1.0
-        self.max_speed = 1.0
+        self.max_speed = 0.5
         self.state = EntityState()
         self.action = Action()
         self.rule_based = True
@@ -178,7 +178,7 @@ class World(object):
         # print("action shape: ", leader_agent.action.u.shape)
         scale_blue_red = 0.5
         scale_blue_food = 3
-        border_force = 0.8
+        border_force = 0.9
         
         # 判断是否靠近边界[-1, 1]
         if(leader_agent.state.p_pos[0] < -0.9):

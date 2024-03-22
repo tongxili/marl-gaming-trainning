@@ -87,10 +87,7 @@ class MultiAgentEnv(gym.Env):
         # set action for each agent
         for i, agent in enumerate(self.agents):
             self._set_action(action_n[i], agent, self.action_space[i])
-        # # rule agents也需要set action，但估计有些项不需要
-        # for agent in self.rule_agents:
-        #     self._set_action(agent.action.u, agent, action_space=None) # temp
-        
+            
         # advance world state
         self.world.step()
         # record observation for each agent
