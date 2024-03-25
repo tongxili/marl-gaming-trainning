@@ -191,11 +191,12 @@ class Scenario(BaseScenario):
         
         for obstacle in world.landmarks:
             # 和landmarks非常近时，奖励相应增加或减少
-            if np.sqrt(np.sum(np.square(obstacle.state.p_pos - agent.state.p_pos)))<0.1:
-                if 'food' in obstacle.name:
-                    rew -= 5 # 不能太近
-                elif 'landmark' in obstacle.name:
-                    rew -= 5
+            # 暂时没用到障碍物landmark
+            # if np.sqrt(np.sum(np.square(obstacle.state.p_pos - agent.state.p_pos)))<0.1:
+            #     if 'food' in obstacle.name:
+            #         rew -= 5 # 不能太近
+            #     elif 'landmark' in obstacle.name:
+            #         rew -= 5
 
             if self.is_collision(obstacle,agent):
                 if 'landmark' in obstacle.name:
@@ -206,15 +207,16 @@ class Scenario(BaseScenario):
             if np.sqrt(np.sum(np.square(other_agent.state.p_pos - agent.state.p_pos)))<0.1:
                 rew -= 10 # 红方相互之间不能太近
             if self.is_collision(agent, other_agent):
-                rew -= 20 # 红方不能相撞
+                rew -= 50 # 红方不能相撞
         
         for rule_agent in self.rule_agents(world):
+            if rule_agent.death: continue
             # 红方和蓝方，距离越近，reward越大
             dist_red = np.sqrt(np.sum(np.square(agent.state.p_pos - rule_agent.state.p_pos)))
             rew += 10 * np.exp(-dist_red)
 
             if self.is_collision(agent, rule_agent):
-                rew += 20
+                rew += 50
                 agent.death = True
                 rule_agent.death = True
                 rule_agent.color = np.array([0, 0, 0])
@@ -223,15 +225,15 @@ class Scenario(BaseScenario):
             # 蓝方和目标点
             for target in world.food: 
                 # 蓝方距离目标点越近，reward扣越多
-                dist_food = np.sqrt(np.sum(np.square(agent.state.p_pos - rule_agent.state.p_pos)))
-                rew -= 20 * np.exp(-dist_food)
+                dist_food = np.sqrt(np.sum(np.square(target.state.p_pos - rule_agent.state.p_pos)))
+                rew -= 25 * np.exp(-dist_food)
                 
                 # 蓝方到达目标点，扣分
                 if self.is_collision(rule_agent, target):
                     rew -= 100
                     rule_agent.death = True
                     rule_agent.movable = False
-                    self.rule_agents(world)[0].death = True
+                    self.rule_agents(world)[0].death = True # leader也到达
                     self.rule_agents(world)[0].movable = False
         
         #这一段训练后期再加
