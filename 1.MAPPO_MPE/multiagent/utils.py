@@ -148,7 +148,7 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
             # y_red = generate_random_val(-x_red, screen_size[1])  # 1>y>-x>-1
             # red在第一象限
             x_red = generate_random_val(x_mid, screen_size[1])
-            y_red = generate_random_val(screen_size[0], y_mid)
+            y_red = generate_random_val(y_mid, screen_size[1])
             red_swarm_pos.append([x_red, y_red])
         for _ in range(num_food):
             check_pos = generate_random_coordinates(x_mid, screen_size[1], y_mid, screen_size[1]) #右上

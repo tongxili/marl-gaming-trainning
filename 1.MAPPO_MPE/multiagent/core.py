@@ -168,8 +168,9 @@ class World(object):
                     distance_blue_food = np.sqrt(np.sum(np.square(delta_pos_blue_food)))
                     if(distance_blue_food < agent.size + lmk.size):
                         p_force = [np.zeros(agent.action.u.shape)] * len(self.scripted_agents)
+                        # print("Blue wins!")
                         # self.scripted_agents[0].movable = False
-                        lmk.color = np.array([0, 0, 1])
+                        # lmk.color = np.array([0, 0, 1])
                         return p_force
         
         # set applied forces on rule-based agents, currently same as leader
@@ -211,8 +212,13 @@ class World(object):
             elif 'landmark' in lmk.name:
                 p_force_leader[0] -= d_t_blue_lmk[0] * np.exp(-distance_blue_landmark) * scale_blue_red
                 p_force_leader[1] -= d_t_blue_lmk[1] * np.exp(-distance_blue_landmark) * scale_blue_red
-            
-        p_force = [p_force_leader] * len(self.scripted_agents)       
+        
+        # acceleration limit
+        p_force_scale = np.sqrt(np.square(p_force_leader[0]) + np.square(p_force_leader[1]))
+        if p_force_scale > leader_agent.accel:
+            p_force_leader = p_force_leader / p_force_scale * leader_agent.accel
+        
+        p_force = [p_force_leader] * len(self.scripted_agents)
         return p_force
 
     # gather agent action forces

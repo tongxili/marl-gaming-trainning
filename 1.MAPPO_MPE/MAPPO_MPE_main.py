@@ -28,11 +28,11 @@ class Runner_MAPPO_MPE:
         self.env = make_env(env_name, discrete=True) # Discrete action space
         self.args.N = self.env.n  # The number of agents
         self.args.obs_dim_n = [self.env.observation_space[i].shape[0] for i in range(self.args.N)]  # obs dimensions of N agents
-        # self.args.action_dim_n = [self.env.action_space[i].n for i in range(self.args.N)]  # actions dimensions of N agents
+        self.args.action_dim_n = [self.env.action_space[i].n for i in range(self.args.N)]  # actions dimensions of N agents
         # Only for homogenous agents environments like Spread in MPE,all agents have the same dimension of observation space and action space
         self.args.obs_dim = self.args.obs_dim_n[0]  # The dimensions of an agent's observation space
-        # self.args.action_dim = self.args.action_dim_n[0]  # The dimensions of an agent's action space
-        self.args.action_dim = 5 #?
+        self.args.action_dim = self.args.action_dim_n[0]  # The dimensions of an agent's action space
+        # self.args.action_dim = 5 #?
         self.args.state_dim = np.sum(self.args.obs_dim_n)  # The dimensions of global state space（Sum of the dimensions of the local observation space of all agents）
         print("observation_space=", self.env.observation_space)
         print("obs_dim_n={}".format(self.args.obs_dim_n))
@@ -124,7 +124,7 @@ class Runner_MAPPO_MPE:
         return episode_reward, episode_step + 1
 
     def run_display(self, ): # visualize 
-        self.agent_n.load_model(self.env_name, self.number, self.seed, 2995)
+        self.agent_n.load_model(self.env_name, self.number, self.seed, 60)
         print("successfully load the model")
         while True:
             obs_n = self.env.reset()
@@ -138,7 +138,7 @@ class Runner_MAPPO_MPE:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for MAPPO in MPE environment")
-    parser.add_argument("--max_train_steps", type=int, default=int(3e6), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(2e6), help=" Maximum number of training steps")
     parser.add_argument("--episode_limit", type=int, default=100, help="Maximum number of steps per episode")
     parser.add_argument("--evaluate_freq", type=float, default=5000, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--evaluate_times", type=float, default=3, help="Evaluate times")
