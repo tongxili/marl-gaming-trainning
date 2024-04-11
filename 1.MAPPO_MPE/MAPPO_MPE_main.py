@@ -112,8 +112,9 @@ class Runner_MAPPO_MPE:
                 self.replay_buffer.store_transition(episode_step, obs_n, s, v_n, a_n, a_logprob_n, r_n, done_n)
 
             obs_n = obs_next_n
-            if all(done_n):
-                break
+            # if all(done_n):
+            #     # print("episode ends!")
+            #     break
 
         if not evaluate:
             # An episode is over, store v_n in the last step
@@ -124,17 +125,30 @@ class Runner_MAPPO_MPE:
         return episode_reward, episode_step + 1
 
     def run_display(self, ): # visualize 
-        self.agent_n.load_model(self.env_name, self.number, self.seed, 60)
+        self.agent_n.load_model(self.env_name, self.number, self.seed, 2000)
         print("successfully load the model")
+        red_win_rate = [0, 0]
         while True:
             obs_n = self.env.reset()
+            red_win_rate[1] += 1
+            red_win=True
             for _ in range(self.args.episode_limit):
                 a_n, _ = self.agent_n.choose_action(obs_n, evaluate=True)
-                obs_n, _, done_n, _ = self.env.step(a_n)
+                obs_n, _, done_n, info_n = self.env.step(a_n)
                 if all(done_n):
+                    # print("info_n:", info_n)
+                    if len(info_n)>0 and info_n[0]=="Blue wins!": # have problem
+                        red_win=False
+                        print("Blue wins!")
+                    else:
+                        # red_win_rate[0] += 1
+                        print("Red wins!")
                     break
                 self.env.render()
                 time.sleep(0.05)
+            if(red_win):
+                red_win_rate[0] += 1
+            print("episode ends! red_win_rate:{}".format(red_win_rate[0]/red_win_rate[1]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for MAPPO in MPE environment")

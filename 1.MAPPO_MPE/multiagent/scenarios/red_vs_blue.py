@@ -9,7 +9,7 @@ class Scenario(BaseScenario):
         #配置无人机个数，环境维度
         world.dim_c = 2
         
-        num_agents = 4 # red
+        num_agents = 5 # red
         num_rule_agents = 5 # blue
         num_landmarks = 0 # TEMP: no obstacles
         num_food = 1
@@ -42,6 +42,7 @@ class Scenario(BaseScenario):
             rule_agent.death = False
             rule_agent.pusai = np.pi
             rule_agent.hit = False
+            rule_agent.win = False # 蓝方到达目标点
             rule_agent.movable = True
             rule_agent.action.u = np.zeros(world.dim_p) # initialize action.u
             rule_agent.action.c = np.zeros(world.dim_c)
@@ -112,38 +113,13 @@ class Scenario(BaseScenario):
             
             rule_agent.death = False
             rule_agent.hit = False
+            rule_agent.win = False
 
         for i, landmark in enumerate(world.landmarks):
             if not landmark.boundary: # other landmarks
                 # Random position and 0 velocity for landmarks
                 landmark.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
                 landmark.state.p_vel = np.zeros(world.dim_p) # 速度为0
-                # if landmark.name == 'landmark 0':
-                #     landmark.state.p_pos = np.array([-0.1,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 1':
-                #     landmark.state.p_pos = np.array([0.1,-0.7])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 2':
-                #     landmark.state.p_pos = np.array([0.1,0.3])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 3':
-                #     landmark.state.p_pos = np.array([-0.1,0.1])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 4':
-                #     landmark.state.p_pos = np.array([-0.2,0.4])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 5':
-                #     landmark.state.p_pos = np.array([0.2,0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 6':
-                #     landmark.state.p_pos = np.array([0.3,0.5])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 7':
-                #     landmark.state.p_pos = np.array([0.6,0.7])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 8':
-                #     landmark.state.p_pos = np.array([0.6,0.1])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 9':
-                #     landmark.state.p_pos = np.array([0.7,-0.2])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 10':
-                #     landmark.state.p_pos = np.array([0.8,-0.5])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 11':
-                #     landmark.state.p_pos = np.array([0.9,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
-                # elif landmark.name == 'landmark 12':
-                #     landmark.state.p_pos = np.array([0.9,-0.8])+np.random.uniform(-0.1, +0.1, world.dim_p)
 
         for i, landmark in enumerate(world.food):
             landmark.state.p_pos = food_pos[i] # change for 4 quardants
@@ -185,24 +161,20 @@ class Scenario(BaseScenario):
         if agent.state.p_pos[0] > 1 or agent.state.p_pos[0] < -1 or agent.state.p_pos[1] > 1 or agent.state.p_pos[1] < -1:
             rew = -5 # 越界扣分
         else:
-            rew = 0 #
-        
-        # for target in world.food:
-        #     # 距离越远，reward越小
-        #     rew -= 10 * np.sqrt(np.sum(np.square(agent.state.p_pos - target.state.p_pos)))
-            
+            rew = 0            
         
         for obstacle in world.landmarks:
             # 和landmarks非常近时，奖励相应增加或减少
             # 暂时没用到障碍物landmark
-            # if np.sqrt(np.sum(np.square(obstacle.state.p_pos - agent.state.p_pos)))<0.1:
-            #     if 'food' in obstacle.name:
-            #         rew -= 5 # 不能太近
-            #     elif 'landmark' in obstacle.name:
-            #         rew -= 5
-
-            if self.is_collision(obstacle,agent):
+            if np.sqrt(np.sum(np.square(obstacle.state.p_pos - agent.state.p_pos)))<0.1:
                 if 'landmark' in obstacle.name:
+                    rew -= 5 # 不能太近
+                # elif 'food' in obstacle.name:
+                #     rew -= 5
+
+            if self.is_collision(obstacle, agent):
+                if 'landmark' in obstacle.name:
+                    agent.death = True
                     rew-=3
         
         for other_agent in world.agents:
@@ -241,9 +213,11 @@ class Scenario(BaseScenario):
                 if self.is_collision(rule_agent, target):
                     # print("blue wins!")
                     rew -= 10
+                    rule_agent.win = True
                     rule_agent.death = True
                     rule_agent.movable = False
-                    self.rule_agents(world)[0].death = True # leader也到达
+                    self.rule_agents(world)[0].win = True # leader也到达
+                    self.rule_agents(world)[0].death = True
                     self.rule_agents(world)[0].movable = False
         
         #这一段训练后期再加
@@ -291,10 +265,30 @@ class Scenario(BaseScenario):
         
         return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + rule_pos + entity_pos + other_pos + other_vel)
 
-    def finish(self, world):
-        agents = self.good_agents(world)
-        for i, landmark in enumerate(world.food):
-            for good_a in agents:
-                if self.is_collision(good_a, landmark):
-                    return True
+    # def finish(self, world):
+    #     agents = self.good_agents(world)
+    #     for i, landmark in enumerate(world.food):
+    #         for good_a in agents:
+    #             if self.is_collision(good_a, landmark):
+    #                 return True
+    #     return False
+    
+    def finish(self, agent, world):
+    # 判断特定agent是否结束（死亡或对方leader死亡）
+        rule_agents = self.rule_agents(world)
+        if rule_agents[0].death:
+            return True
+        
+        if agent.death:
+            return True
         return False
+
+    def get_info(self, agent, world): # win info
+        rule_agents = self.rule_agents(world)
+        red_agents = self.good_agents(world)
+        if rule_agents[0].death and not rule_agents[0].win:
+            return "Red wins!"
+        elif(rule_agents[0].win or all(red_agents[i].death for i in range(len(red_agents)))): # all red agents are dead
+            return "Blue wins!"
+        else:
+            return "Training..."
