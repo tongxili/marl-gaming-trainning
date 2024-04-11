@@ -7,7 +7,7 @@ from replay_buffer import ReplayBuffer
 from maddpg import MADDPG
 from matd3 import MATD3
 import copy
-
+import time
 
 class Runner:
     def __init__(self, args, env_name, number, seed):
@@ -106,16 +106,32 @@ class Runner:
         for agent_id in range(self.args.N):
             self.agent_n[agent_id].save_model(self.env_name, self.args.algorithm, self.number, self.total_steps, agent_id)
 
+    def run_display(self, ): # visualize 
+        for agent_id in range (self.args.N):
+            self.agent_n[agent_id].load_model(self.env_name, self.args.algorithm, self.number, total_steps=950, agent_id = agent_id)
+        print("successfully load the model")
+        while True:
+            obs_n = self.env.reset()
+            for _ in range(self.args.episode_limit):
+                # a_n, _ = self.agent_n.choose_action(obs_n, evaluate=True)
+                # obs_n, _, done_n, _ = self.env.step(a_n)
+                a_n = [agent.choose_action(obs, noise_std=self.noise_std) for agent, obs in zip(self.agent_n, obs_n)]
+                # --------------------------!!!注意！！！这里一定要deepcopy，MPE环境会把a_n乘5-------------------------------------------
+                obs_n, r_n, done_n, _ = self.env.step(copy.deepcopy(a_n))
+                if all(done_n):
+                    break
+                self.env.render()
+                time.sleep(0.05)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for MADDPG and MATD3 in MPE environment")
     parser.add_argument("--max_train_steps", type=int, default=int(1e6), help=" Maximum number of training steps")
-    parser.add_argument("--episode_limit", type=int, default=25, help="Maximum number of steps per episode")
+    parser.add_argument("--episode_limit", type=int, default=100, help="Maximum number of steps per episode")
     parser.add_argument("--evaluate_freq", type=float, default=5000, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--evaluate_times", type=float, default=3, help="Evaluate times")
     parser.add_argument("--max_action", type=float, default=1.0, help="Max action")
 
-    parser.add_argument("--algorithm", type=str, default="MATD3", help="MADDPG or MATD3")
+    parser.add_argument("--algorithm", type=str, default="MADDPG", help="MADDPG or MATD3")
     parser.add_argument("--buffer_size", type=int, default=int(1e6), help="The capacity of the replay buffer")
     parser.add_argument("--batch_size", type=int, default=1024, help="Batch size")
     parser.add_argument("--hidden_dim", type=int, default=64, help="The number of neurons in hidden layers of the neural network")
@@ -139,5 +155,6 @@ if __name__ == '__main__':
 
     env_names = ["simple_speaker_listener", "simple_spread"]
     env_index = 0
-    runner = Runner(args, env_name=env_names[env_index], number=1, seed=0)
-    runner.run()
+    runner = Runner(args, env_name="red_vs_blue", number=1, seed=0)
+    # runner.run()
+    runner.run_display()

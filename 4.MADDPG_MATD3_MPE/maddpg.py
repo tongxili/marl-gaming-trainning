@@ -70,3 +70,6 @@ class MADDPG(object):
 
     def save_model(self, env_name, algorithm, number, total_steps, agent_id):
         torch.save(self.actor.state_dict(), "./model/{}/{}_actor_number_{}_step_{}k_agent_{}.pth".format(env_name, algorithm, number, int(total_steps / 1000), agent_id))
+
+    def load_model(self, env_name, algorithm, number, total_steps, agent_id):
+        self.actor.load_state_dict(torch.load("./model/{}/{}_actor_number_{}_step_{}k_agent_{}.pth".format(env_name, algorithm, number, int(total_steps / 1000), agent_id)))

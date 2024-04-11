@@ -1,0 +1,6 @@
+model/*
+__pycache__/*
+multiagent/__pycache__/*
+multiagent/scenarios/__pycache__/*
+runs/*
+data_train/*
