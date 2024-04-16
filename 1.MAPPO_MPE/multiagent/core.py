@@ -103,7 +103,7 @@ class World(object):
         # communication channel dimensionality
         self.dim_c = 0
         # position dimensionality
-        self.dim_p = 2
+        self.dim_p = 3
         # color dimensionality
         self.dim_color = 3
         # simulation timestep
@@ -190,6 +190,10 @@ class World(object):
             p_force_leader[1] += border_force
         elif(leader_agent.state.p_pos[1] > 0.9):
             p_force_leader[1] -= border_force
+        if(leader_agent.state.p_pos[2] < -0.9):
+            p_force_leader[2] += border_force
+        elif(leader_agent.state.p_pos[2] > 0.9):
+            p_force_leader[2] -= border_force
         
         for agent in self.policy_agents:
             # repulsion from red agents
@@ -198,6 +202,7 @@ class World(object):
             d_t_blue_red = delta_pos_blue_red / distance_blue_red # direction vector from leader to blue
             p_force_leader[0] -= d_t_blue_red[0] * np.exp(-distance_blue_red) * scale_blue_red
             p_force_leader[1] -= d_t_blue_red[1] * np.exp(-distance_blue_red) * scale_blue_red
+            p_force_leader[2] -= d_t_blue_red[2] * np.exp(-distance_blue_red) * scale_blue_red
             # print(distance_blue_red, d_t_blue_red, p_force_leader)
 
         for lmk in self.landmarks:
@@ -209,12 +214,14 @@ class World(object):
             if 'food' in lmk.name:
                 p_force_leader[0] += d_t_blue_lmk[0] * np.exp(-distance_blue_landmark) * scale_blue_food
                 p_force_leader[1] += d_t_blue_lmk[1] * np.exp(-distance_blue_landmark) * scale_blue_food
+                p_force_leader[2] += d_t_blue_lmk[2] * np.exp(-distance_blue_landmark) * scale_blue_food
             elif 'landmark' in lmk.name:
                 p_force_leader[0] -= d_t_blue_lmk[0] * np.exp(-distance_blue_landmark) * scale_blue_red
                 p_force_leader[1] -= d_t_blue_lmk[1] * np.exp(-distance_blue_landmark) * scale_blue_red
+                p_force_leader[2] -= d_t_blue_lmk[2] * np.exp(-distance_blue_landmark) * scale_blue_red
         
         # acceleration limit
-        p_force_scale = np.sqrt(np.square(p_force_leader[0]) + np.square(p_force_leader[1]))
+        p_force_scale = np.sqrt(np.sum(np.square(p_force_leader)))
         if p_force_scale > leader_agent.accel:
             p_force_leader = p_force_leader / p_force_scale * leader_agent.accel
         
@@ -256,10 +263,9 @@ class World(object):
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             if entity.max_speed is not None:
-                speed = np.sqrt(np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
+                speed = np.sqrt(np.sum(np.square(entity.state.p_vel)))
                 if speed > entity.max_speed:
-                    entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
-                                                                  np.square(entity.state.p_vel[1])) * entity.max_speed
+                    entity.state.p_vel = (entity.state.p_vel / speed) * entity.max_speed
             entity.state.p_pos += entity.state.p_vel * self.dt
 
     def update_agent_state(self, agent):

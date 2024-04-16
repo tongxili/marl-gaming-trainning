@@ -152,7 +152,7 @@ class Runner_MAPPO_MPE:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for MAPPO in MPE environment")
-    parser.add_argument("--max_train_steps", type=int, default=int(2e6), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(10e6), help=" Maximum number of training steps")
     parser.add_argument("--episode_limit", type=int, default=100, help="Maximum number of steps per episode")
     parser.add_argument("--evaluate_freq", type=float, default=5000, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--evaluate_times", type=float, default=3, help="Evaluate times")

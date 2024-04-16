@@ -95,8 +95,11 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
     '''
     x = random.uniform(screen_size[0], screen_size[1])
     y = random.uniform(screen_size[0], screen_size[1])
+    z = random.uniform(screen_size[0], screen_size[1])
+
     x_mid = sum(screen_size) / 2
     y_mid = sum(screen_size) / 2
+    z_mid = sum(screen_size) / 2
     ##########################
     #    2     #      1      #
     #          #             #
@@ -117,7 +120,7 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
         blue_mark = 3
         red_mark = 1
 
-    blue_pos = [x, y]
+    blue_pos = [x, y, z]
     blue_swarm_pos = []
     blue_swarm_pos.append(blue_pos)
     # print("num_blue:", num_rule)
@@ -125,7 +128,8 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
         angle = 2 * np.pi * i / (num_rule-1)
         x_blue = x + dist_rule * np.cos(angle)
         y_blue = y + dist_rule * np.sin(angle)
-        blue_swarm_pos.append([x_blue, y_blue])
+        z_blue = z + dist_rule * np.cos(angle)
+        blue_swarm_pos.append([x_blue, y_blue, z_blue])
 
     red_swarm_pos = []
     food_check_pos = []
@@ -137,9 +141,10 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
             # red在第二象限
             x_red = generate_random_val(screen_size[0], x_mid)
             y_red = generate_random_val(y_mid, screen_size[1])
-            red_swarm_pos.append([x_red, y_red])
+            red_swarm_pos.append([x_red, y_red, 2*z_mid-z])
         for _ in range(num_food):
             check_pos = generate_random_coordinates(screen_size[0], x_mid, y_mid, screen_size[1]) # 左上
+            check_pos.append(2*z_mid-z)
             food_check_pos.append(check_pos)
     elif red_mark == 1:  
         for _ in range(num_adv):
@@ -149,9 +154,10 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
             # red在第一象限
             x_red = generate_random_val(x_mid, screen_size[1])
             y_red = generate_random_val(y_mid, screen_size[1])
-            red_swarm_pos.append([x_red, y_red])
+            red_swarm_pos.append([x_red, y_red, 2*z_mid-z])
         for _ in range(num_food):
             check_pos = generate_random_coordinates(x_mid, screen_size[1], y_mid, screen_size[1]) #右上
+            check_pos.append(2*z_mid-z)
             food_check_pos.append(check_pos)
     elif red_mark == 4:  
         for _ in range(num_adv):
@@ -161,9 +167,10 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
             # red在第四象限
             x_red = generate_random_val(x_mid, screen_size[1])
             y_red = generate_random_val(screen_size[0], y_mid)
-            red_swarm_pos.append([x_red, y_red])
+            red_swarm_pos.append([x_red, y_red, 2*z_mid-z])
         for _ in range(num_food):
             check_pos = generate_random_coordinates(x_mid, screen_size[1], screen_size[0], y_mid)
+            check_pos.append(2*z_mid-z)
             food_check_pos.append(check_pos)
     elif red_mark == 3:  
         for _ in range(num_adv):
@@ -173,9 +180,10 @@ def four_dir_generate_random_coordinates(screen_size, num_rule, dist_rule, num_a
             # red在第三象限
             x_red = generate_random_val(screen_size[0], x_mid)
             y_red = generate_random_val(screen_size[0], y_mid)
-            red_swarm_pos.append([x_red, y_red])
+            red_swarm_pos.append([x_red, y_red, 2*z_mid-z])
         for _ in range(num_food):
             check_pos = generate_random_coordinates(screen_size[0], x_mid, screen_size[0], y_mid)
+            check_pos.append(2*z_mid-z)
             food_check_pos.append(check_pos)
 
     return np.array(blue_swarm_pos), np.array(red_swarm_pos), np.array(food_check_pos)

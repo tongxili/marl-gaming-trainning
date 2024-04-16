@@ -7,10 +7,10 @@ class Scenario(BaseScenario):
     def make_world(self):
         world = World()
         #配置无人机个数，环境维度
-        world.dim_c = 2
-        
-        num_agents = 5 # red
-        num_rule_agents = 5 # blue
+        world.dim_c = 2 # 通信
+        world.dim_p = 3 # 空间
+        num_agents = 6 # red
+        num_rule_agents = 6 # blue
         num_landmarks = 0 # TEMP: no obstacles
         num_food = 1
         self.num_rule_agents = num_rule_agents
@@ -158,7 +158,8 @@ class Scenario(BaseScenario):
         if agent.death:
             return 0
         
-        if agent.state.p_pos[0] > 1 or agent.state.p_pos[0] < -1 or agent.state.p_pos[1] > 1 or agent.state.p_pos[1] < -1:
+        if (agent.state.p_pos[0] > 1 or agent.state.p_pos[0] < -1 or agent.state.p_pos[1] > 1 or agent.state.p_pos[1] < -1 or
+            agent.state.p_pos[2] > 1 or agent.state.p_pos[2] < -1):
             rew = -5 # 越界扣分
         else:
             rew = 0            
@@ -186,7 +187,9 @@ class Scenario(BaseScenario):
         
         num_rule_agents = len(world.rule_agents)
         for i, rule_agent in enumerate(world.rule_agents):
-            if rule_agent.death: continue
+            if rule_agent.death: 
+                rew += 1
+                continue
             # 红方和蓝方，距离越近，reward越大
             dist_red = np.sqrt(np.sum(np.square(agent.state.p_pos - rule_agent.state.p_pos)))
             if dist_red<0.1:
@@ -200,7 +203,7 @@ class Scenario(BaseScenario):
                 agent.death = True
                 # agent.movable = False
                 rule_agent.death = True
-                rule_agent.color = np.array([0, 0, 0])
+                # rule_agent.color = np.array([0, 0, 0])
                 rule_agent.movable = False
             
             # 蓝方和目标点
@@ -212,7 +215,7 @@ class Scenario(BaseScenario):
                 # 蓝方到达目标点，扣分
                 if self.is_collision(rule_agent, target):
                     # print("blue wins!")
-                    rew -= 10
+                    rew -= 20
                     rule_agent.win = True
                     rule_agent.death = True
                     rule_agent.movable = False
@@ -263,7 +266,7 @@ class Scenario(BaseScenario):
             rule_pos.append(rule_agent.state.p_pos - agent.state.p_pos)
             # 暂时不把rule_agent的速度加进来
         
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + rule_pos + entity_pos + other_pos + other_vel)
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + other_vel +  other_pos + rule_pos + entity_pos)
 
     # def finish(self, world):
     #     agents = self.good_agents(world)

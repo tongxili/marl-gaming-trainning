@@ -169,6 +169,8 @@ class MultiAgentEnv(gym.Env):
                 if action[0] == 2: agent.action.u[0] = +1.0
                 if action[0] == 3: agent.action.u[1] = -1.0
                 if action[0] == 4: agent.action.u[1] = +1.0
+                if action[0] == 5: agent.action.u[2] = -1.0
+                if action[0] == 6: agent.action.u[2] = +1.0
             else:
                 if self.force_discrete_action:
                     d = np.argmax(action[0])
@@ -177,6 +179,7 @@ class MultiAgentEnv(gym.Env):
                 if self.discrete_action_space:
                     agent.action.u[0] += action[0][1] - action[0][2]
                     agent.action.u[1] += action[0][3] - action[0][4]
+                    agent.action.u[2] += action[0][5] - action[0][6]
                 else:
                     agent.action.u = action[0]
             sensitivity = 5.0
