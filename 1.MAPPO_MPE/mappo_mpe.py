@@ -217,7 +217,7 @@ class MAPPO_MPE:
             actor_inputs.shape=(batch_size, max_episode_len, N, actor_input_dim)
             critic_inputs.shape=(batch_size, max_episode_len, N, critic_input_dim)
         """
-        actor_inputs, critic_inputs = self.get_inputs(batch)
+        actor_inputs, critic_inputs = self.get_inputs(batch) # actor_inputs.shape=(batch_size, episode_limit, N, actor_input_dim) # obs_n连接后的
 
         # Optimize policy for K epochs:
         for _ in range(self.K_epochs):
@@ -247,7 +247,7 @@ class MAPPO_MPE:
                 dist_now = Categorical(probs_now)
                 dist_entropy = dist_now.entropy()  # dist_entropy.shape=(mini_batch_size, episode_limit, N)
                 # batch['a_n'][index].shape=(mini_batch_size, episode_limit, N)
-                a_logprob_n_now = dist_now.log_prob(batch['a_n'][index])  # a_logprob_n_now.shape=(mini_batch_size, episode_limit, N)
+                a_logprob_n_now = dist_now.log_prob(batch['a_n'][index])  # a_logprob_n_now.shape=(mini_batch_size, episode_limit, N) # Probelm
                 # a/b=exp(log(a)-log(b))
                 ratios = torch.exp(a_logprob_n_now - batch['a_logprob_n'][index].detach())  # ratios.shape=(mini_batch_size, episode_limit, N)
                 surr1 = ratios * adv[index]

@@ -146,7 +146,7 @@ class World(object):
             # agent.action = self.apply_action_force(p_force)
 
         # gather forces applied to entities
-        p_force = [None] * len(self.entities)
+        p_force = [None] * len(self.policy_agents) # 之前self.entities数量对不上？
         # apply agent physical controls
         p_force = self.apply_action_force(p_force)
         # apply environment forces
@@ -159,7 +159,7 @@ class World(object):
     
     def apply_rule_force(self, p_force):
         # check if any agent reaches landmark
-        for agent in self.policy_agents:
+        for agent in self.scripted_agents: # 之前写错了？！
             for lmk in self.landmarks:
                 if 'landmark' in lmk.name:
                     continue

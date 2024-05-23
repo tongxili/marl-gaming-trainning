@@ -65,7 +65,9 @@ class Runner_MAPPO_MPE:
             _, episode_steps = self.run_episode_mpe(evaluate=False)  # Run an episode
             self.total_steps += episode_steps
 
+            # print("episode_steps: ", self.replay_buffer.episode_num)
             if self.replay_buffer.episode_num == self.args.batch_size:
+                # print("Start training!")
                 self.agent_n.train(self.replay_buffer, self.total_steps)  # Training
                 self.replay_buffer.reset_buffer()
 
@@ -109,7 +111,9 @@ class Runner_MAPPO_MPE:
                     r_n = self.reward_scaling(r_n)
 
                 # Store the transition
-                self.replay_buffer.store_transition(episode_step, obs_n, s, v_n, a_n, a_logprob_n, r_n, done_n)
+                self.replay_buffer.store_transition(episode_step, obs_n, s, v_n, a_n, a_logprob_n, r_n, done_n) 
+                # done_n能不能删除？在训练中用到吗？
+                # Problem: 可能是这里存储的信息不对，导致train的时候有batch data出现 ValueError: Expected value argument... 的问题
 
             obs_n = obs_next_n
             # if all(done_n):
