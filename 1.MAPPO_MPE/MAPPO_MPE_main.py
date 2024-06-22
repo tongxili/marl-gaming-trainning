@@ -7,6 +7,7 @@ from normalization import Normalization, RewardScaling
 from replay_buffer import ReplayBuffer
 from mappo_mpe import MAPPO_MPE
 from make_env import make_env
+import csv
 
 
 class Runner_MAPPO_MPE:
@@ -129,29 +130,49 @@ class Runner_MAPPO_MPE:
         return episode_reward, episode_step + 1
 
     def run_display(self, ): # visualize 
-        self.agent_n.load_model(self.env_name, self.number, self.seed, 2000)
+        self.agent_n.load_model(self.env_name, self.number, self.seed, 9000)
         print("successfully load the model")
-        red_win_rate = [0, 0]
+        red_win_rate = [0, 0] # [0]-red win times, [1]-total times
         while True:
             obs_n = self.env.reset()
             red_win_rate[1] += 1
             red_win=True
+            
+            with open("sim_trajectory/track_{}.csv".format(red_win_rate[1]), "w", newline='') as f:
+                writer = csv.writer(f)
+                header = []
+                lmk_header = []
+                for entity in self.env.world.entities:
+                    if('food' in entity.name or 'landmark' in entity.name):
+                        lmk_header.append(entity.name)
+                    else:
+                        header.append(entity.name)
+                header += lmk_header
+                writer.writerow(header)  # Write header
+
             for _ in range(self.args.episode_limit):
                 a_n, _ = self.agent_n.choose_action(obs_n, evaluate=True)
                 obs_n, _, done_n, info_n = self.env.step(a_n)
+                pos_n = self.env.record_sim_trace() # record this episode's position
                 if all(done_n):
                     # print("info_n:", info_n)
                     if len(info_n)>0 and info_n[0]=="Blue wins!": # have problem
                         red_win=False
                         print("Blue wins!")
                     else:
-                        # red_win_rate[0] += 1
                         print("Red wins!")
                     break
-                self.env.render()
+                # self.env.render()
+
+                # write position into this round's txt file
+                with open("sim_trajectory/track_{}.csv".format(red_win_rate[1]), "a", newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(pos_n)
+                
                 time.sleep(0.05)
             if(red_win):
                 red_win_rate[0] += 1
+            
             print("episode ends! red_win_rate:{}".format(red_win_rate[0]/red_win_rate[1]))
 
 if __name__ == '__main__':

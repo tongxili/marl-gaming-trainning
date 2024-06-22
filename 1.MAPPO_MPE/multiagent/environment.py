@@ -269,6 +269,19 @@ class MultiAgentEnv(gym.Env):
 
         return results
 
+    # record simulation trajectory data when display
+    def record_sim_trace(self):
+        pos = []
+        lmk_pos = []
+        for entity in self.world.entities:
+            # Order: red_agent, blue_rule_agent, lmk
+            if('food' in entity.name or 'landmark' in entity.name):
+                lmk_pos.append(entity.state.p_pos.tolist())
+            else:
+                pos.append(entity.state.p_pos.tolist())
+        pos += lmk_pos
+        return pos
+
     # create receptor field locations in local coordinate frame
     def _make_receptor_locations(self, agent):
         receptor_type = 'polar'

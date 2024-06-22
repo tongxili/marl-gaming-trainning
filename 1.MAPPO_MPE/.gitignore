@@ -4,3 +4,4 @@ multiagent/__pycache__/*
 multiagent/scenarios/__pycache__/*
 runs/*
 data_train/*
+sim_trajectory/*

@@ -7,7 +7,7 @@ class Scenario(BaseScenario):
     def make_world(self):
         world = World()
         #配置无人机个数，环境维度
-        world.dim_c = 2 # 通信
+        world.dim_c = 0 # 通信
         world.dim_p = 3 # 空间
         num_agents = 6 # red
         num_rule_agents = 6 # blue
@@ -19,7 +19,7 @@ class Scenario(BaseScenario):
         #对无人机进行状态设置等等。。。
         world.agents = [Agent() for _ in range(num_agents)]
         for i, agent in enumerate(world.agents):
-            agent.name = 'agent %d' % i
+            agent.name = 'red_agent %d' % i
             agent.collide = True
             agent.silent = True
             agent.accel = 0.8
@@ -33,7 +33,7 @@ class Scenario(BaseScenario):
         # rule_based_agents
         world.rule_agents = [Rule_based_Agent() for _ in range(num_rule_agents)]
         for i, rule_agent in enumerate(world.rule_agents):
-            rule_agent.name = 'agent %d' % i
+            rule_agent.name = 'blue_agent %d' % i
             rule_agent.collide = True
             rule_agent.silent = True
             rule_agent.accel = 0.8
