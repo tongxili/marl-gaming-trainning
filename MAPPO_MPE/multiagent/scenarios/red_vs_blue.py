@@ -16,7 +16,7 @@ class Scenario(BaseScenario):
         self.num_rule_agents = num_rule_agents
         self.num_good_agents = num_agents
         self.num_food = num_food
-        #对无人机进行状态设置等等。。。
+        #对无人机进行状态设置等等
         world.agents = [Agent() for _ in range(num_agents)]
         for i, agent in enumerate(world.agents):
             agent.name = 'red_agent %d' % i
@@ -94,7 +94,7 @@ class Scenario(BaseScenario):
             
         for i, agent in enumerate(self.good_agents(world)):
             # interval = 2.0 / (len(self.good_agents(world)) + 1)
-            #print(interval)，中心距离为0.5
+            # print(interval)，中心距离为0.5
             # agent.state.p_pos = np.array([-0.9, 1 - (i+1)*interval])
             agent.state.p_pos = red_pos[i]
             agent.state.p_vel = np.zeros(world.dim_p)
@@ -119,7 +119,7 @@ class Scenario(BaseScenario):
             if not landmark.boundary: # other landmarks
                 # Random position and 0 velocity for landmarks
                 landmark.state.p_pos = np.random.uniform(-0.8, +0.8, world.dim_p)
-                landmark.state.p_vel = np.zeros(world.dim_p) # 速度为0
+                landmark.state.p_vel = np.zeros(world.dim_p)
 
         for i, landmark in enumerate(world.food):
             landmark.state.p_pos = food_pos[i] # change for 4 quardants
@@ -247,7 +247,6 @@ class Scenario(BaseScenario):
         return rew
 
     def observation(self, agent, world):
-        #这个是用来观测的
         entity_pos = []
         for entity in world.landmarks:
             if not entity.boundary:
@@ -277,7 +276,7 @@ class Scenario(BaseScenario):
     #     return False
     
     def finish(self, agent, world):
-    # 判断特定agent是否结束（死亡或对方leader死亡）
+    # check if certain agent ends (death or opponent's leader dead)
         rule_agents = self.rule_agents(world)
         if rule_agents[0].death:
             return True

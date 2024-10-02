@@ -181,7 +181,7 @@ class World(object):
         scale_blue_food = 3
         border_force = 0.9
         
-        # 判断是否靠近边界[-1, 1]
+        # check if near border [-1, 1]
         if(leader_agent.state.p_pos[0] < -0.9):
             p_force_leader[0] += border_force
         elif(leader_agent.state.p_pos[0] > 0.9):

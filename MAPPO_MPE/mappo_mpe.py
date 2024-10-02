@@ -13,56 +13,6 @@ def orthogonal_init(layer, gain=1.0):
         elif 'weight' in name:
             nn.init.orthogonal_(param, gain=gain)
 
-
-class Actor_RNN(nn.Module):
-    def __init__(self, args, actor_input_dim):
-        super(Actor_RNN, self).__init__()
-        self.rnn_hidden = None
-
-        self.fc1 = nn.Linear(actor_input_dim, args.rnn_hidden_dim)
-        self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
-        self.fc2 = nn.Linear(args.rnn_hidden_dim, args.action_dim)
-        self.activate_func = [nn.Tanh(), nn.ReLU()][args.use_relu]
-
-        if args.use_orthogonal_init:
-            print("------use_orthogonal_init------")
-            orthogonal_init(self.fc1)
-            orthogonal_init(self.rnn)
-            orthogonal_init(self.fc2, gain=0.01)
-
-    def forward(self, actor_input):
-        # When 'choose_action': actor_input.shape=(N, actor_input_dim), prob.shape=(N, action_dim)
-        # When 'train':         actor_input.shape=(mini_batch_size*N, actor_input_dim),prob.shape=(mini_batch_size*N, action_dim)
-        x = self.activate_func(self.fc1(actor_input))
-        self.rnn_hidden = self.rnn(x, self.rnn_hidden)
-        prob = torch.softmax(self.fc2(self.rnn_hidden), dim=-1)
-        return prob
-
-
-class Critic_RNN(nn.Module):
-    def __init__(self, args, critic_input_dim):
-        super(Critic_RNN, self).__init__()
-        self.rnn_hidden = None
-
-        self.fc1 = nn.Linear(critic_input_dim, args.rnn_hidden_dim)
-        self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
-        self.fc2 = nn.Linear(args.rnn_hidden_dim, 1)
-        self.activate_func = [nn.Tanh(), nn.ReLU()][args.use_relu]
-        if args.use_orthogonal_init:
-            print("------use_orthogonal_init------")
-            orthogonal_init(self.fc1)
-            orthogonal_init(self.rnn)
-            orthogonal_init(self.fc2)
-
-    def forward(self, critic_input):
-        # When 'get_value': critic_input.shape=(N, critic_input_dim), value.shape=(N, 1)
-        # When 'train':     critic_input.shape=(mini_batch_size*N, critic_input_dim), value.shape=(mini_batch_size*N, 1)
-        x = self.activate_func(self.fc1(critic_input))
-        self.rnn_hidden = self.rnn(x, self.rnn_hidden)
-        value = self.fc2(self.rnn_hidden)
-        return value
-
-
 class Actor_MLP(nn.Module):
     def __init__(self, args, actor_input_dim):
         super(Actor_MLP, self).__init__()
@@ -130,7 +80,6 @@ class MAPPO_MPE:
         self.use_grad_clip = args.use_grad_clip
         self.use_lr_decay = args.use_lr_decay
         self.use_adv_norm = args.use_adv_norm
-        self.use_rnn = args.use_rnn
         self.add_agent_id = args.add_agent_id
         self.use_value_clip = args.use_value_clip
 
@@ -142,13 +91,9 @@ class MAPPO_MPE:
             self.actor_input_dim += args.N
             self.critic_input_dim += args.N
 
-        if self.use_rnn:
-            print("------use rnn------")
-            self.actor = Actor_RNN(args, self.actor_input_dim)
-            self.critic = Critic_RNN(args, self.critic_input_dim)
-        else:
-            self.actor = Actor_MLP(args, self.actor_input_dim)
-            self.critic = Critic_MLP(args, self.critic_input_dim)
+        
+        self.actor = Actor_MLP(args, self.actor_input_dim)
+        self.critic = Critic_MLP(args, self.critic_input_dim)
 
         self.ac_parameters = list(self.actor.parameters()) + list(self.critic.parameters())
         if self.set_adam_eps:

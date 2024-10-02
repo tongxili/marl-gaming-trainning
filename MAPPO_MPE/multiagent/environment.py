@@ -1,6 +1,5 @@
 import gym
 from gym import spaces
-from gym.envs.registration import EnvSpec
 import numpy as np
 from multiagent.multi_discrete import MultiDiscrete
 
@@ -98,7 +97,7 @@ class MultiAgentEnv(gym.Env):
             reward_n.append(self._get_reward(agent))
             done_n.append(self._get_done(agent))
 
-            info_n.append(self._get_info(agent)) # 因为生成的info都是一样的，考虑改成string而不是list
+            info_n.append(self._get_info(agent))
 
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
